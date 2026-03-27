@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>EdSquare Monitor</title>
+<style>
+  body { font-family: monospace; background: #0d0d0d; color: #eee; padding: 2rem; }
+  #status { font-size: 1.4rem; margin-bottom: 1.5rem; }
+  .on  { color: #4caf50; }
+  .off { color: #f44336; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; color: #888; border-bottom: 1px solid #333; padding: .4rem .8rem; }
+  td { padding: .4rem .8rem; border-bottom: 1px solid #1e1e1e; }
+  tr:first-child td { color: #ffd54f; }
+</style>
+</head>
+<body>
+<div id="status">⏳ Connexion...</div>
+<table>
+  <thead><tr><th>Heure</th><th>Salle</th><th>Code</th></tr></thead>
+  <tbody id="codes"></tbody>
+</table>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  const socket = io();
+  const statusEl = document.getElementById("status");
+  const codesEl  = document.getElementById("codes");
+
+  function setStatus(connected, lastSeen) {
+    statusEl.className = connected ? "on" : "off";
+    statusEl.textContent = connected
+      ? `✅ Connecté (depuis ${lastSeen})`
+      : "❌ Déconnecté — en attente de reconnexion...";
+  }
+
+  function addRow(entry, prepend = true) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${entry.time}</td><td>${entry.classroom}</td><td>${entry.code}</td>`;
+    prepend ? codesEl.prepend(tr) : codesEl.appendChild(tr);
+  }
+
+  socket.on("init", ({ connected, lastSeen, codes }) => {
+    setStatus(connected, lastSeen);
+    codes.forEach(e => addRow(e, false));
+  });
+
+  socket.on("status", ({ connected, lastSeen }) => setStatus(connected, lastSeen));
+  socket.on("code",   (entry) => addRow(entry));
+</script>
+</body>
+</html>
