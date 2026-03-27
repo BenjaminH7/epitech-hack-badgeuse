@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Dashboard</title>
 <style>
   :root {
@@ -50,29 +51,29 @@
   tr:first-child td { color: var(--accent); }
 
   @media (max-width: 720px) {
-    body { padding: 1rem; }
-    #status { font-size: 1.1rem; }
+    body { padding: .8rem; }
+    #status { font-size: 1rem; }
     .top { flex-direction: column; align-items: stretch; }
     .latest-wrap { margin-bottom: 1rem; }
-    .latest-code { font-size: 2.8rem; padding: 1.3rem .8rem; }
-    .copy-btn { width: 100%; font-size: 1.1rem; padding: .95rem 1rem; }
+    .latest-code { font-size: 1.9rem; padding: .9rem .7rem; min-height: 3rem; }
+    .copy-btn { width: 100%; font-size: 1rem; padding: .75rem .9rem; }
 
-    table { font-size: .95rem; }
+    table { font-size: .9rem; }
     thead { display: none; }
     tbody, tr, td { display: block; width: 100%; }
     tr {
       background: #141414;
       border: 1px solid #1f1f1f;
-      border-radius: .6rem;
-      margin-bottom: .8rem;
-      padding: .4rem .7rem;
+      border-radius: .5rem;
+      margin-bottom: .65rem;
+      padding: .35rem .6rem;
     }
-    td { border: none; padding: .45rem 0; }
+    td { border: none; padding: .35rem 0; }
     td::before {
       content: attr(data-label) " : ";
       color: var(--muted);
       display: inline-block;
-      min-width: 4.2rem;
+      min-width: 3.8rem;
     }
     tr:first-child td { color: var(--fg); }
     tr:first-child td:last-child { color: var(--accent); }
