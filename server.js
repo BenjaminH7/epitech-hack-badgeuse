@@ -3,18 +3,51 @@ const axios = require("axios");
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
+const bcrypt = require("bcrypt");
+const session = require("express-session");
 
 const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1487064311330377829/EASOkoB2C6mw7BGHptwFNOwyF6z8uqcjAihyZv3ZM-haKqxtLWzQKK5elUmF3BQxl3wO";
 const SERVER_URL = "https://milkyway.strasbourg.epitech.eu";
+
+const ADMIN_USER = "ADMIN";
+const ADMIN_HASH = "$2b$12$o91Qlibpp.xvDTdVu7/5n.66dj879Cy.eNFAmyDPmv.bsTJTdajgy";
+const SESSION_SECRET = require("crypto").randomBytes(32).toString("hex");
 
 const app = express();
 const httpServer = http.createServer(app);
 const ioServer = new Server(httpServer);
 
+const sessionMiddleware = session({
+    secret: SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: { httpOnly: true, sameSite: "strict" }
+});
+
+app.use(express.urlencoded({ extended: false }));
+app.use(sessionMiddleware);
+
+const auth = (req, res, next) => req.session.auth ? next() : res.redirect("/login");
+
 let status = { connected: false, lastSeen: null, codes: [] };
 
-app.get("/", (req, res) => res.sendFile(__dirname + "/index.html"));
+app.get("/login", (req, res) => res.sendFile(__dirname + "/login.html"));
+app.post("/login", async (req, res) => {
+    const { username, password } = req.body;
+    if (username === ADMIN_USER && await bcrypt.compare(password, ADMIN_HASH)) {
+        req.session.auth = true;
+        return res.redirect("/");
+    }
+    res.redirect("/login?error=1");
+});
+app.post("/logout", (req, res) => { req.session.destroy(); res.redirect("/login"); });
+app.get("/", auth, (req, res) => res.sendFile(__dirname + "/index.html"));
 
+ioServer.use((sock, next) => {
+    sessionMiddleware(sock.request, sock.request.res || {}, () => {
+        sock.request.session?.auth ? next() : next(new Error("Unauthorized"));
+    });
+});
 ioServer.on("connection", (sock) => sock.emit("init", status));
 
 function broadcast(event, data) {

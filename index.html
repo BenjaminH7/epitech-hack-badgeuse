@@ -15,7 +15,10 @@
 </style>
 </head>
 <body>
-<div id="status">⏳ Connexion...</div>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
+  <div id="status">⏳ Connexion...</div>
+  <form method="POST" action="/logout"><button style="background:none;border:1px solid #333;color:#888;padding:.3rem .7rem;cursor:pointer;font-family:monospace">Déconnexion</button></form>
+</div>
 <table>
   <thead><tr><th>Heure</th><th>Salle</th><th>Code</th></tr></thead>
   <tbody id="codes"></tbody>

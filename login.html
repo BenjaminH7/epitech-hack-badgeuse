@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Login</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0d0d0d; display: flex; align-items: center; justify-content: center; height: 100vh; font-family: monospace; }
+  form { display: flex; flex-direction: column; gap: .8rem; width: 260px; }
+  input { background: #1a1a1a; border: 1px solid #333; color: #eee; padding: .6rem .8rem; font-family: monospace; font-size: .95rem; outline: none; }
+  input:focus { border-color: #555; }
+  button { background: #222; border: 1px solid #444; color: #eee; padding: .6rem; cursor: pointer; font-family: monospace; }
+  button:hover { background: #2a2a2a; }
+  .err { color: #f44336; font-size: .85rem; }
+</style>
+</head>
+<body>
+<form method="POST" action="/login">
+  <input name="username" placeholder="Identifiant" autocomplete="off" />
+  <input name="password" type="password" placeholder="Mot de passe" />
+  <button type="submit">Connexion</button>
+  <script>if(location.search.includes("error")) document.write('<span class="err">Identifiants incorrects</span>')</script>
+</form>
+</body>
+</html>
