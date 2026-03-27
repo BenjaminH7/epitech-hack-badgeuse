@@ -19,8 +19,17 @@ function connect() {
         }
     });
 
+    let heartbeat;
+
     socket.on("connect", () => {
         console.log(`[${new Date().toLocaleTimeString()}] ✅ Connecté - En attente des codes...`);
+        heartbeat = setInterval(() => {
+            if (!socket.connected) {
+                clearInterval(heartbeat);
+                socket.disconnect();
+                connect();
+            }
+        }, 10000);
     });
 
     socket.on("codeChange", async (data) => {
@@ -34,6 +43,7 @@ function connect() {
     });
 
     socket.on("disconnect", (reason) => {
+        clearInterval(heartbeat);
         console.log(`[${new Date().toLocaleTimeString()}] ❌ Déconnecté : ${reason} — Reconnexion dans 5s...`);
         setTimeout(connect, 5000);
     });
