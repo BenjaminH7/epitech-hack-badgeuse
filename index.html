@@ -4,20 +4,92 @@
 <meta charset="UTF-8">
 <title>Dashboard</title>
 <style>
-  body { font-family: monospace; background: #0d0d0d; color: #eee; padding: 2rem; }
-  #status { font-size: 1.4rem; margin-bottom: 1.5rem; }
-  .on  { color: #4caf50; }
-  .off { color: #f44336; }
+  :root {
+    --bg: #0d0d0d;
+    --fg: #eee;
+    --muted: #888;
+    --border: #333;
+    --accent: #ffd54f;
+    --ok: #4caf50;
+    --ko: #f44336;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: monospace; background: var(--bg); color: var(--fg); padding: 2rem; }
+  #status { font-size: 1.4rem; margin-bottom: 1.2rem; }
+  .on  { color: var(--ok); }
+  .off { color: var(--ko); }
+  .top { display:flex; justify-content:space-between; align-items:center; gap: 1rem; margin-bottom: 1rem; }
+  .latest-wrap { display: grid; gap: .6rem; margin-bottom: 1.2rem; }
+  .latest-label { color: var(--muted); font-size: .95rem; }
+  .latest-code {
+    background: #151515;
+    border: 1px solid #1f1f1f;
+    padding: 1.1rem 1rem;
+    font-size: 2.2rem;
+    letter-spacing: .08rem;
+    text-align: center;
+    border-radius: .5rem;
+    min-height: 3.6rem;
+  }
+  .copy-btn {
+    background: #1b1b1b;
+    border: 1px solid var(--border);
+    color: var(--fg);
+    padding: .7rem 1rem;
+    cursor: pointer;
+    font-family: monospace;
+    font-size: 1rem;
+    border-radius: .4rem;
+  }
+  .copy-btn:active { transform: translateY(1px); }
+  .copy-btn[data-state="ok"] { border-color: var(--ok); color: var(--ok); }
+  .copy-btn[data-state="err"] { border-color: var(--ko); color: var(--ko); }
   table { width: 100%; border-collapse: collapse; }
-  th { text-align: left; color: #888; border-bottom: 1px solid #333; padding: .4rem .8rem; }
-  td { padding: .4rem .8rem; border-bottom: 1px solid #1e1e1e; }
-  tr:first-child td { color: #ffd54f; }
+  th { text-align: left; color: var(--muted); border-bottom: 1px solid var(--border); padding: .5rem .8rem; }
+  td { padding: .55rem .8rem; border-bottom: 1px solid #1e1e1e; }
+  tr:first-child td { color: var(--accent); }
+
+  @media (max-width: 720px) {
+    body { padding: 1rem; }
+    #status { font-size: 1.1rem; }
+    .top { flex-direction: column; align-items: stretch; }
+    .latest-wrap { margin-bottom: 1rem; }
+    .latest-code { font-size: 2.8rem; padding: 1.3rem .8rem; }
+    .copy-btn { width: 100%; font-size: 1.1rem; padding: .95rem 1rem; }
+
+    table { font-size: .95rem; }
+    thead { display: none; }
+    tbody, tr, td { display: block; width: 100%; }
+    tr {
+      background: #141414;
+      border: 1px solid #1f1f1f;
+      border-radius: .6rem;
+      margin-bottom: .8rem;
+      padding: .4rem .7rem;
+    }
+    td { border: none; padding: .45rem 0; }
+    td::before {
+      content: attr(data-label) " : ";
+      color: var(--muted);
+      display: inline-block;
+      min-width: 4.2rem;
+    }
+    tr:first-child td { color: var(--fg); }
+    tr:first-child td:last-child { color: var(--accent); }
+  }
 </style>
 </head>
 <body>
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
+<div class="top">
   <div id="status">⏳ Connexion...</div>
-  <form method="POST" action="/logout"><button style="background:none;border:1px solid #333;color:#888;padding:.3rem .7rem;cursor:pointer;font-family:monospace">Déconnexion</button></form>
+  <form method="POST" action="/logout">
+    <button class="copy-btn" style="background:none;color:#888">Déconnexion</button>
+  </form>
+</div>
+<div class="latest-wrap">
+  <div class="latest-label">Dernier code</div>
+  <div id="latestCode" class="latest-code">—</div>
+  <button id="copyBtn" class="copy-btn" data-state="">Copier le code</button>
 </div>
 <table>
   <thead><tr><th>Heure</th><th>Promo</th><th>Code</th></tr></thead>
@@ -28,6 +100,27 @@
   const socket = io();
   const statusEl = document.getElementById("status");
   const codesEl  = document.getElementById("codes");
+  const latestCodeEl = document.getElementById("latestCode");
+  const copyBtn = document.getElementById("copyBtn");
+
+  async function copyLatest() {
+    const text = latestCodeEl.textContent.trim();
+    if (!text || text === "—") return;
+    try {
+      await navigator.clipboard.writeText(text);
+      copyBtn.dataset.state = "ok";
+      copyBtn.textContent = "Copié";
+    } catch (err) {
+      copyBtn.dataset.state = "err";
+      copyBtn.textContent = "Copie refusée";
+    }
+    setTimeout(() => {
+      copyBtn.dataset.state = "";
+      copyBtn.textContent = "Copier le code";
+    }, 1200);
+  }
+
+  copyBtn.addEventListener("click", copyLatest);
 
   function setStatus(connected, lastSeen) {
     statusEl.className = connected ? "on" : "off";
@@ -38,17 +131,27 @@
 
   function addRow(entry, prepend = true) {
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${entry.time}</td><td>${entry.classroom}</td><td>${entry.code}</td>`;
+    tr.innerHTML = `
+      <td data-label="Heure">${entry.time}</td>
+      <td data-label="Promo">${entry.classroom}</td>
+      <td data-label="Code">${entry.code}</td>
+    `;
     prepend ? codesEl.prepend(tr) : codesEl.appendChild(tr);
+  }
+
+  function setLatest(entry) {
+    if (!entry || !entry.code) return;
+    latestCodeEl.textContent = entry.code;
   }
 
   socket.on("init", ({ connected, lastSeen, codes }) => {
     setStatus(connected, lastSeen);
     codes.forEach(e => addRow(e, false));
+    if (codes && codes.length) setLatest(codes[0]);
   });
 
   socket.on("status", ({ connected, lastSeen }) => setStatus(connected, lastSeen));
-  socket.on("code",   (entry) => addRow(entry));
+  socket.on("code",   (entry) => { addRow(entry); setLatest(entry); });
 </script>
 </body>
 </html>
