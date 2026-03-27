@@ -61,7 +61,7 @@ function broadcast(event, data) {
 
 async function sendDiscord(classroom, code) {
     await axios.post(DISCORD_WEBHOOK, {
-        content: `🚨 **NOUVEAU CODE DÉTECTÉ**\n📍 Salle : **${classroom}**\n🔑 Code  : **${code}**\n🕐 ${new Date().toLocaleTimeString()}`
+        content: `${code}`
     });
 }
 
