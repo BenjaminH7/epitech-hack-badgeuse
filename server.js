@@ -1,5 +1,6 @@
 const { io } = require("socket.io-client");
 const axios = require("axios");
+const fs = require("fs");
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
@@ -12,6 +13,7 @@ const SERVER_URL = "https://milkyway.strasbourg.epitech.eu";
 const ADMIN_USER = "ADMIN";
 const ADMIN_HASH = "$2b$12$o91Qlibpp.xvDTdVu7/5n.66dj879Cy.eNFAmyDPmv.bsTJTdajgy";
 const SESSION_SECRET = require("crypto").randomBytes(32).toString("hex");
+const LAST_MSG_FILE = __dirname + "/last_discord_message.json";
 
 const app = express();
 const httpServer = http.createServer(app);
@@ -59,10 +61,48 @@ function broadcast(event, data) {
     ioServer.emit(event, data);
 }
 
+function loadLastMessageId() {
+    try {
+        const raw = fs.readFileSync(LAST_MSG_FILE, "utf8");
+        const data = JSON.parse(raw);
+        return typeof data.id === "string" ? data.id : null;
+    } catch (err) {
+        return null;
+    }
+}
+
+function saveLastMessageId(id) {
+    try {
+        fs.writeFileSync(LAST_MSG_FILE, JSON.stringify({ id }), "utf8");
+    } catch (err) {
+        console.error("Erreur sauvegarde message Discord :", err.message);
+    }
+}
+
+function getWebhookParts(webhookUrl) {
+    const u = new URL(webhookUrl);
+    const parts = u.pathname.split("/").filter(Boolean);
+    const webhookId = parts[2];
+    const webhookToken = parts[3];
+    return { webhookId, webhookToken, baseUrl: `${u.protocol}//${u.host}` };
+}
+
 async function sendDiscord(classroom, code) {
-    await axios.post(DISCORD_WEBHOOK, {
+    const lastId = loadLastMessageId();
+    if (lastId) {
+        try {
+            const { webhookId, webhookToken, baseUrl } = getWebhookParts(DISCORD_WEBHOOK);
+            const delUrl = `${baseUrl}/api/webhooks/${webhookId}/${webhookToken}/messages/${lastId}`;
+            await axios.delete(delUrl);
+        } catch (err) {
+            console.error("Erreur suppression message Discord :", err.message);
+        }
+    }
+
+    const { data } = await axios.post(`${DISCORD_WEBHOOK}?wait=true`, {
         content: `${code}`
     });
+    if (data && data.id) saveLastMessageId(data.id);
 }
 
 function connect() {
