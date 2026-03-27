@@ -1,0 +1,17 @@
+{
+  "dependencies": {
+    "cd": "^0.3.3",
+    "socket.io-client": "^4.8.3"
+  },
+  "name": "desktop",
+  "version": "1.0.0",
+  "description": "",
+  "main": "edsquare.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}
