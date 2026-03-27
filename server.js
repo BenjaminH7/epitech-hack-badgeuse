@@ -24,6 +24,7 @@ const sessionMiddleware = session({
     cookie: { httpOnly: true, sameSite: "strict" }
 });
 
+app.disable("x-powered-by");
 app.use(express.urlencoded({ extended: false }));
 app.use(sessionMiddleware);
 
