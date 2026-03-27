@@ -2,20 +2,57 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Connexion</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #0d0d0d; display: flex; align-items: center; justify-content: center; height: 100vh; font-family: monospace; }
-  form { display: flex; flex-direction: column; gap: .8rem; width: 260px; }
-  input { background: #1a1a1a; border: 1px solid #333; color: #eee; padding: .6rem .8rem; font-family: monospace; font-size: .95rem; outline: none; }
+  body {
+    background: #0d0d0d;
+    color: #eee;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: monospace;
+    padding: 1.4rem;
+  }
+  form { display: flex; flex-direction: column; gap: .9rem; width: min(340px, 100%); }
+  input {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    color: #eee;
+    padding: .75rem .9rem;
+    font-family: monospace;
+    font-size: 1rem;
+    outline: none;
+    border-radius: .4rem;
+  }
   input:focus { border-color: #555; }
-  button { background: #222; border: 1px solid #444; color: #eee; padding: .6rem; cursor: pointer; font-family: monospace; }
+  button {
+    background: #222;
+    border: 1px solid #444;
+    color: #eee;
+    padding: .75rem;
+    cursor: pointer;
+    font-family: monospace;
+    font-size: 1rem;
+    border-radius: .4rem;
+  }
   button:hover { background: #2a2a2a; }
-  .err { color: #f44336; font-size: .85rem; }
+  .err { color: #f44336; font-size: .9rem; }
+
+  @media (max-width: 480px) {
+    body { padding: 1rem; }
+    input, button { font-size: 1.05rem; }
+  }
 </style>
 </head>
 <body>
 <form method="POST" action="/login">
+  <div style="text-align:center; margin-bottom:.2rem;">
+    <img src="https://images.unsplash.com/photo-1550853123-b81beb2f4cc4?q=80&w=400&auto=format&fit=crop" alt="Canard" style="width:120px; height:120px; object-fit:cover; border-radius:50%; border:1px solid #333;" />
+  </div>
+  <div style="text-align:center; font-size:1.05rem; color:#ddd;">bienvenue sur chinoiserie</div>
   <input name="username" placeholder="Identifiant" autocomplete="off" />
   <input name="password" type="password" placeholder="Mot de passe" />
   <button type="submit">Connexion</button>
