@@ -43,7 +43,7 @@ app.post("/login", async (req, res) => {
 });
 app.post("/logout", (req, res) => { req.session.destroy(); res.redirect("/login"); });
 app.get("/", auth, (req, res) => res.sendFile(__dirname + "/index.html"));
-app.get("/codeABCZ", auth, (req, res) => {
+app.get("/codeABCZ", (req, res) => {
     const latest = status.codes[0] || null;
     res.json({ latest });
 });
