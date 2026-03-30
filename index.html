@@ -20,6 +20,16 @@
   .on  { color: var(--ok); }
   .off { color: var(--ko); }
   .top { display:flex; justify-content:space-between; align-items:center; gap: 1rem; margin-bottom: 1rem; }
+  select#promoFilter {
+    background: #1b1b1b;
+    border: 1px solid var(--border);
+    color: var(--fg);
+    padding: .5rem .8rem;
+    font-family: monospace;
+    font-size: .95rem;
+    border-radius: .4rem;
+    cursor: pointer;
+  }
   .latest-wrap { display: grid; gap: .6rem; margin-bottom: 1.2rem; }
   .latest-label { color: var(--muted); font-size: .95rem; }
   .latest-code {
@@ -83,9 +93,12 @@
 <body>
 <div class="top">
   <div id="status">⏳ Connexion...</div>
-  <form method="POST" action="/logout">
-    <button class="copy-btn" style="background:none;color:#888">Déconnexion</button>
-  </form>
+  <div style="display:flex;gap:.7rem;align-items:center">
+    <select id="promoFilter"><option value="2026">MSc 2026</option></select>
+    <form method="POST" action="/logout">
+      <button class="copy-btn" style="background:none;color:#888">Déconnexion</button>
+    </form>
+  </div>
 </div>
 <div class="latest-wrap">
   <div class="latest-label">Dernier code</div>
@@ -103,6 +116,47 @@
   const codesEl  = document.getElementById("codes");
   const latestCodeEl = document.getElementById("latestCode");
   const copyBtn = document.getElementById("copyBtn");
+  const promoFilter = document.getElementById("promoFilter");
+
+  let allCodes = [];
+  let promos = new Set(["2026"]);
+
+  function currentFilter() { return promoFilter.value; }
+
+  function matchesFilter(entry) {
+    const f = currentFilter();
+    return f === "all" || JSON.stringify(entry).includes(f);
+  }
+
+  function rebuildPromoSelect() {
+    const current = promoFilter.value;
+    promoFilter.innerHTML = "";
+    const allOpt = document.createElement("option");
+    allOpt.value = "all"; allOpt.textContent = "Toutes les promos";
+    promoFilter.appendChild(allOpt);
+    [...promos].sort().forEach(p => {
+      const opt = document.createElement("option");
+      opt.value = p; opt.textContent = `MSc ${p}`;
+      promoFilter.appendChild(opt);
+    });
+    promoFilter.value = promos.has(current) || current === "all" ? current : "2026";
+  }
+
+  function extractPromo(entry) {
+    const m = JSON.stringify(entry).match(/20\d{2}/);
+    if (m) promos.add(m[0]);
+  }
+
+  function renderTable() {
+    codesEl.innerHTML = "";
+    allCodes.filter(matchesFilter).forEach(e => addRow(e, false));
+  }
+
+  promoFilter.addEventListener("change", () => {
+    renderTable();
+    const visible = allCodes.filter(matchesFilter);
+    setLatest(visible[0] || null);
+  });
 
   async function copyLatest() {
     const text = latestCodeEl.textContent.trim();
@@ -141,18 +195,30 @@
   }
 
   function setLatest(entry) {
-    if (!entry || !entry.code) return;
-    latestCodeEl.textContent = entry.code;
+    latestCodeEl.textContent = entry && entry.code ? entry.code : "—";
   }
 
   socket.on("init", ({ connected, lastSeen, codes }) => {
     setStatus(connected, lastSeen);
-    codes.forEach(e => addRow(e, false));
-    if (codes && codes.length) setLatest(codes[0]);
+    allCodes = codes || [];
+    allCodes.forEach(extractPromo);
+    rebuildPromoSelect();
+    promoFilter.value = "2026";
+    renderTable();
+    const visible = allCodes.filter(matchesFilter);
+    setLatest(visible[0] || null);
   });
 
   socket.on("status", ({ connected, lastSeen }) => setStatus(connected, lastSeen));
-  socket.on("code",   (entry) => { addRow(entry); setLatest(entry); });
+  socket.on("code", (entry) => {
+    allCodes.unshift(entry);
+    extractPromo(entry);
+    rebuildPromoSelect();
+    if (matchesFilter(entry)) {
+      addRow(entry, true);
+      setLatest(entry);
+    }
+  });
 </script>
 </body>
 </html>

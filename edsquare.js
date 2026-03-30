@@ -34,6 +34,7 @@ function connect() {
 
     socket.on("codeChange", async (data) => {
         console.log(`🚨 Code détecté : ${data.code} | Salle : ${data.classroom}`);
+        if (!JSON.stringify(data).includes("2026")) return;
         try {
             await sendDiscord(data.classroom, data.code);
             console.log("✅ Message envoyé sur Discord");

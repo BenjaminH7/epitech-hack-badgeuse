@@ -122,7 +122,7 @@ function connect() {
 
     socket.on("connect", () => {
         status.connected = true;
-        status.lastSeen = new Date().toLocaleTimeString();
+        status.lastSeen = new Date().toLocaleString("fr-FR");
         broadcast("status", { connected: true, lastSeen: status.lastSeen });
         console.log(`[${status.lastSeen}] ✅ Connecté`);
 
@@ -141,6 +141,8 @@ function connect() {
         if (status.codes.length > 50) status.codes.pop();
         broadcast("code", entry);
         console.log(`🚨 Code : ${data.code} | Salle : ${data.classroom}`);
+        const promo = JSON.stringify(data);
+        if (!promo.includes("2026")) return;
         try {
             await sendDiscord(data.classroom, data.code);
         } catch (err) {
