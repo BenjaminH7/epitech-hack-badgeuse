@@ -60,6 +60,56 @@
   td { padding: .55rem .8rem; border-bottom: 1px solid #1e1e1e; }
   tr:first-child td { color: var(--accent); }
 
+  /* Modal Badger */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.7);
+    align-items: center; justify-content: center;
+    z-index: 100;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: #141414;
+    border: 1px solid #333;
+    border-radius: .6rem;
+    padding: 1.4rem;
+    display: flex; flex-direction: column; gap: .8rem;
+    width: min(320px, 90vw);
+    font-family: monospace;
+  }
+  .modal input {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    color: #eee;
+    padding: .65rem .8rem;
+    font-family: monospace;
+    font-size: .95rem;
+    border-radius: .4rem;
+    outline: none;
+  }
+  .modal input:focus { border-color: #555; }
+  .modal-actions { display: flex; gap: .6rem; }
+  .modal-actions button {
+    flex: 1;
+    background: #1b1b1b;
+    border: 1px solid #444;
+    color: #eee;
+    padding: .65rem;
+    cursor: pointer;
+    font-family: monospace;
+    font-size: .95rem;
+    border-radius: .4rem;
+  }
+  .modal-actions button:hover { background: #222; }
+  #badgeResult {
+    font-size: .8rem;
+    word-break: break-all;
+    color: #4caf50;
+    display: none;
+  }
+  #badgeResult.err { color: #f44336; }
+
   @media (max-width: 720px) {
     body { padding: .8rem; }
     #status { font-size: 1rem; }
@@ -95,6 +145,7 @@
   <div id="status">⏳ Connexion...</div>
   <div style="display:flex;gap:.7rem;align-items:center">
     <select id="promoFilter"><option value="2026">MSc 2026</option></select>
+    <button class="copy-btn" id="openBadgeBtn">🔖 Badger</button>
     <form method="POST" action="/logout">
       <button class="copy-btn" style="background:none;color:#888">Déconnexion</button>
     </form>
@@ -109,6 +160,39 @@
   <thead><tr><th>Heure</th><th>Promo</th><th>Code</th></tr></thead>
   <tbody id="codes"></tbody>
 </table>
+<!-- Modal Badger -->
+<div class="modal-overlay" id="badgeModal">
+  <div class="modal">
+    <!-- Étape 1 : login -->
+    <div id="stepLogin">
+      <div style="color:#888;font-size:.9rem;margin-bottom:.4rem">Connexion Badger</div>
+      <input id="badgeEmail" type="email" placeholder="Email" autocomplete="off" />
+      <input id="badgePassword" type="password" placeholder="Mot de passe" />
+      <div id="loginError" style="color:#f44336;font-size:.82rem;display:none"></div>
+      <div class="modal-actions" style="margin-top:.4rem">
+        <button id="badgeSubmit">Se connecter</button>
+        <button id="badgeClose" style="color:#888">Annuler</button>
+      </div>
+    </div>
+    <!-- Étape 2 : badger -->
+    <div id="stepSnipe" style="display:none">
+      <div style="color:#888;font-size:.82rem;margin-bottom:.3rem">Token récupéré ✅</div>
+      <div id="tokenPreview" style="font-size:.75rem;color:#555;word-break:break-all;margin-bottom:.6rem"></div>
+      <input id="snipeUserId" placeholder="User ID (ex: 12)" />
+      <input id="snipeCardId" placeholder="Card ID (ex: 04 BB 30 BA 4A 1C 90)" />
+      <select id="snipeSessionType" style="background:#1a1a1a;border:1px solid #333;color:#eee;padding:.65rem .8rem;font-family:monospace;font-size:.95rem;border-radius:.4rem;outline:none">
+        <option value="afternoon">Après-midi (afternoon)</option>
+        <option value="morning">Matin (morning)</option>
+      </select>
+      <div id="snipeResult" style="font-size:.82rem;word-break:break-all;display:none;white-space:pre-wrap"></div>
+      <div class="modal-actions">
+        <button id="snipeSubmit">🎯 Badger</button>
+        <button id="snipeClose" style="color:#888">Fermer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="/socket.io/socket.io.js"></script>
 <script>
   const socket = io();
@@ -197,6 +281,84 @@
   function setLatest(entry) {
     latestCodeEl.textContent = entry && entry.code ? entry.code : "—";
   }
+
+  // Badger
+  let badgeToken = null;
+  const badgeModal = document.getElementById("badgeModal");
+
+  function closeModal() {
+    badgeModal.classList.remove("open");
+    badgeToken = null;
+    document.getElementById("stepLogin").style.display = "";
+    document.getElementById("stepSnipe").style.display = "none";
+    document.getElementById("badgeEmail").value = "";
+    document.getElementById("badgePassword").value = "";
+    document.getElementById("loginError").style.display = "none";
+    document.getElementById("snipeResult").style.display = "none";
+  }
+
+  document.getElementById("openBadgeBtn").addEventListener("click", () => badgeModal.classList.add("open"));
+  document.getElementById("badgeClose").addEventListener("click", closeModal);
+  document.getElementById("snipeClose").addEventListener("click", closeModal);
+
+  document.getElementById("badgeSubmit").addEventListener("click", async () => {
+    const email = document.getElementById("badgeEmail").value.trim();
+    const password = document.getElementById("badgePassword").value;
+    const errEl = document.getElementById("loginError");
+    if (!email || !password) return;
+    errEl.style.display = "none";
+    try {
+      const res = await fetch("/badge", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ email, password })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(JSON.stringify(data.error));
+      badgeToken = data.token;
+      document.getElementById("tokenPreview").textContent =
+        `${data.email} — ${data.promo} — token: ${badgeToken.slice(0, 30)}...`;
+      document.getElementById("snipeUserId").value = data.userId || "";
+      document.getElementById("snipeCardId").value = data.cardId || "";
+      document.getElementById("stepLogin").style.display = "none";
+      document.getElementById("stepSnipe").style.display = "";
+    } catch (err) {
+      errEl.textContent = err.message;
+      errEl.style.display = "block";
+    }
+  });
+
+  document.getElementById("snipeSubmit").addEventListener("click", async () => {
+    const userId = document.getElementById("snipeUserId").value.trim();
+    const cardId = document.getElementById("snipeCardId").value.trim();
+    const sessionType = document.getElementById("snipeSessionType").value;
+    const resultEl = document.getElementById("snipeResult");
+    if (!userId || !cardId) return;
+    resultEl.style.display = "none";
+    try {
+      const res = await fetch("/badge/snipe", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ token: badgeToken, userId, cardId, sessionType })
+      });
+      const data = await res.json();
+      resultEl.style.display = "block";
+      if (!res.ok || data.error) {
+        resultEl.style.color = "#f44336";
+        resultEl.textContent = JSON.stringify(data.error, null, 2);
+      } else if (!data.found) {
+        resultEl.style.color = "#ffd54f";
+        resultEl.textContent = data.message;
+      } else {
+        resultEl.style.color = "#4caf50";
+        resultEl.textContent = JSON.stringify(data.result, null, 2);
+      }
+    } catch (err) {
+      resultEl.style.color = "#f44336";
+      resultEl.textContent = err.message;
+      resultEl.style.display = "block";
+    }
+  });
 
   socket.on("init", ({ connected, lastSeen, codes }) => {
     setStatus(connected, lastSeen);

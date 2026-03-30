@@ -45,6 +45,51 @@ app.post("/login", async (req, res) => {
 });
 app.post("/logout", (req, res) => { req.session.destroy(); res.redirect("/login"); });
 app.get("/", auth, (req, res) => res.sendFile(__dirname + "/index.html"));
+app.post("/badge", auth, async (req, res) => {
+    const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ error: "Champs manquants" });
+    try {
+        const { data } = await axios.post("https://api.badger.epihub.eu/api/auth/login", { email, password }, {
+            headers: {
+                "accept": "application/json, text/plain, */*",
+                "content-type": "application/json",
+                "origin": "https://badger.epihub.eu",
+                "referer": "https://badger.epihub.eu/"
+            }
+        });
+        const token = data.token || data.jwt || data.access_token;
+        const { data: me } = await axios.get("https://api.badger.epihub.eu/api/users/me", {
+            headers: { authorization: `Bearer ${token}`, accept: "application/json, text/plain, */*", referer: "https://badger.epihub.eu/" }
+        });
+        res.json({ token, userId: me.id, cardId: me.cardId, email: me.email, promo: me.promo });
+    } catch (err) {
+        res.status(err.response?.status || 500).json({ error: err.response?.data || err.message });
+    }
+});
+
+app.post("/badge/snipe", auth, async (req, res) => {
+    const { token, userId, cardId, sessionType } = req.body;
+    if (!token || !userId || !cardId || !sessionType) return res.status(400).json({ error: "Champs manquants" });
+    const bearer = `Bearer ${token}`;
+    const today = new Date().toLocaleDateString("en-CA");
+    try {
+        const { data: sessions } = await axios.get("https://api.badger.epihub.eu/api/sessions/with-presences", {
+            headers: { authorization: bearer }
+        });
+        const session = sessions.find(s => s.date === today && s.sessionType === sessionType);
+        if (!session) return res.json({ found: false, message: `Aucune session "${sessionType}" ouverte aujourd'hui (${today})` });
+        const { data: result } = await axios.post("https://api.badger.epihub.eu/api/presences", {
+            sessionId: session.id,
+            userId: Number(userId),
+            cardId,
+            is_present: true
+        }, { headers: { authorization: bearer, "content-type": "application/json" } });
+        res.json({ found: true, session: { id: session.id, date: session.date, type: session.sessionType }, result });
+    } catch (err) {
+        res.status(err.response?.status || 500).json({ error: err.response?.data || err.message });
+    }
+});
+
 app.get("/codeABCZ", (req, res) => {
     const latest = status.codes[0] || null;
     res.json({ latest });
