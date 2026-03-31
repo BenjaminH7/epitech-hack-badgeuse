@@ -45,6 +45,7 @@ app.post("/login", async (req, res) => {
 });
 app.post("/logout", (req, res) => { req.session.destroy(); res.redirect("/login"); });
 app.get("/", auth, (req, res) => res.sendFile(__dirname + "/index.html"));
+app.get("/calendar.html", auth, (req, res) => res.sendFile(__dirname + "/calendar.html"));
 app.post("/badge", auth, async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ error: "Champs manquants" });
