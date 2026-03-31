@@ -16,7 +16,7 @@
   }
   * { box-sizing: border-box; }
   body { font-family: monospace; background: var(--bg); color: var(--fg); padding: 2rem; }
-  #status { font-size: 1.4rem; margin-bottom: 1.2rem; }
+  #status { font-size: clamp(.95rem, 2.5vw, 1.4rem); margin-bottom: 1.2rem; word-break: break-word; line-height: 1.4; }
   .on  { color: var(--ok); }
   .off { color: var(--ko); }
   .top { display:flex; justify-content:space-between; align-items:center; gap: 1rem; margin-bottom: 1rem; }
@@ -36,11 +36,12 @@
     background: #151515;
     border: 1px solid #1f1f1f;
     padding: 1.1rem 1rem;
-    font-size: 2.2rem;
+    font-size: clamp(1.5rem, 5vw, 2.2rem);
     letter-spacing: .08rem;
     text-align: center;
     border-radius: .5rem;
     min-height: 3.6rem;
+    word-break: break-all;
   }
   .copy-btn {
     background: #1b1b1b;
@@ -111,32 +112,43 @@
   #badgeResult.err { color: #f44336; }
 
   @media (max-width: 720px) {
-    body { padding: .8rem; }
-    #status { font-size: 1rem; }
-    .top { flex-direction: column; align-items: stretch; }
-    .latest-wrap { margin-bottom: 1rem; }
-    .latest-code { font-size: 1.9rem; padding: .9rem .7rem; min-height: 3rem; }
+    body { padding: .75rem; }
+    .top { flex-direction: column; align-items: stretch; gap: .5rem; }
+    .top > div { flex-direction: column; gap: .5rem; }
+    .top > div form, .top > div select, .top > div button { width: 100%; }
+    select#promoFilter { width: 100%; }
+    .latest-wrap { margin-bottom: .9rem; gap: .5rem; }
+    .latest-code { padding: .9rem .7rem; min-height: 3rem; }
     .copy-btn { width: 100%; font-size: 1rem; padding: .75rem .9rem; }
 
-    table { font-size: .9rem; }
+    table { font-size: .88rem; }
     thead { display: none; }
     tbody, tr, td { display: block; width: 100%; }
     tr {
       background: #141414;
       border: 1px solid #1f1f1f;
       border-radius: .5rem;
-      margin-bottom: .65rem;
-      padding: .35rem .6rem;
+      margin-bottom: .55rem;
+      padding: .4rem .65rem;
     }
-    td { border: none; padding: .35rem 0; }
+    td { border: none; padding: .3rem 0; display: flex; gap: .4rem; align-items: baseline; }
     td::before {
-      content: attr(data-label) " : ";
+      content: attr(data-label) " :";
       color: var(--muted);
-      display: inline-block;
-      min-width: 3.8rem;
+      flex-shrink: 0;
+      min-width: 3.5rem;
     }
     tr:first-child td { color: var(--fg); }
     tr:first-child td:last-child { color: var(--accent); }
+
+    .modal { padding: 1rem; gap: .65rem; }
+    .modal input { font-size: .9rem; padding: .6rem .7rem; }
+    .modal-actions button { padding: .6rem; font-size: .9rem; }
+  }
+
+  @media (max-width: 380px) {
+    body { padding: .5rem; }
+    .modal { width: 95vw; }
   }
 </style>
 </head>
@@ -146,7 +158,7 @@
   <div style="display:flex;gap:.7rem;align-items:center">
     <select id="promoFilter"><option value="2026">MSc 2026</option></select>
     <button class="copy-btn" id="openBadgeBtn">🔖 Badger</button>
-    <form method="POST" action="/logout">
+    <form method="POST" action="/logout" style="display:contents">
       <button class="copy-btn" style="background:none;color:#888">Déconnexion</button>
     </form>
   </div>
