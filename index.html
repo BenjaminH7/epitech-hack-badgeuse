@@ -531,6 +531,10 @@
       const cardId = document.getElementById("snipeCardId").value.trim();
       const sessionType = document.getElementById("snipeSessionType").value;
 
+      // MODIFICATION ICI : On récupère la promo ciblée pour l'envoyer au backend
+      let targetPromo = document.getElementById("promoFilter").value;
+      if (targetPromo === "all") targetPromo = "2026"; // Fallback de sécurité sur ta promo
+
       const resultEl = document.getElementById("snipeResult");
       if (!userId || !cardId) return;
       resultEl.style.display = "none";
@@ -539,7 +543,8 @@
         const res = await fetch("/badge/snipe", {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({ token: badgeToken, userId, cardId, sessionType })
+          // Ajout de 'promo: targetPromo' dans le payload
+          body: new URLSearchParams({ token: badgeToken, userId, cardId, sessionType, promo: targetPromo })
         });
         const data = await res.json();
         resultEl.style.display = "block";
