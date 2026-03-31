@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calendrier Sessions</title>
+<style>
+  :root {
+    --bg: #0d0d0d; --fg: #eee; --muted: #888;
+    --border: #333; --accent: #ffd54f;
+    --morning: #1565c0; --afternoon: #4a148c;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: monospace; background: var(--bg); color: var(--fg); padding: 2rem; }
+  .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; gap: 1rem; }
+  .nav { display: flex; align-items: center; gap: 1rem; }
+  .nav button {
+    background: #1b1b1b; border: 1px solid var(--border); color: var(--fg);
+    padding: .5rem .9rem; cursor: pointer; font-family: monospace; font-size: 1rem;
+    border-radius: .4rem;
+  }
+  .nav button:hover { background: #222; }
+  #monthLabel { font-size: 1.2rem; min-width: 12rem; text-align: center; }
+  .legend { display: flex; gap: 1rem; font-size: .82rem; color: var(--muted); align-items: center; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+  }
+  .day-header { text-align: center; color: var(--muted); font-size: .8rem; padding: .4rem 0; }
+  .cell {
+    background: #111; border: 1px solid #1a1a1a;
+    border-radius: .4rem; min-height: 80px; padding: .4rem;
+    position: relative;
+  }
+  .cell.empty { background: transparent; border-color: transparent; }
+  .cell.today { border-color: var(--accent); }
+  .cell-num { font-size: .75rem; color: var(--muted); margin-bottom: .3rem; }
+  .session {
+    font-size: .72rem; border-radius: .25rem; padding: .2rem .35rem;
+    margin-bottom: .2rem; cursor: default; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  .session.morning { background: var(--morning); color: #90caf9; }
+  .session.afternoon { background: var(--afternoon); color: #ce93d8; }
+  #loading { color: var(--muted); text-align: center; padding: 3rem; }
+  @media (max-width: 600px) {
+    body { padding: .6rem; }
+    .cell { min-height: 55px; }
+    .session { font-size: .65rem; }
+    .top { flex-direction: column; align-items: stretch; }
+  }
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="nav">
+    <button id="prev">◀</button>
+    <div id="monthLabel">—</div>
+    <button id="next">▶</button>
+  </div>
+  <div class="legend">
+    <span><span class="dot" style="background:#1565c0"></span> Matin</span>
+    <span><span class="dot" style="background:#4a148c"></span> Après-midi</span>
+  </div>
+</div>
+<div id="loading">⏳ Chargement...</div>
+<div class="grid" id="grid" style="display:none"></div>
+
+<script>
+  const API = "https://api.badger.epihub.eu/api/sessions/date/";
+  const DAYS = ["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"];
+  const MONTHS = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
+
+  let current = new Date();
+  let cache = {};
+
+  async function fetchMonth(year, month) {
+    const key = `${year}-${month}`;
+    if (cache[key]) return cache[key];
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const sessions = {};
+    const promises = [];
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      promises.push(
+        fetch(API + dateStr)
+          .then(r => r.ok ? r.json() : null)
+          .then(data => {
+            if (!data) return;
+            const arr = Array.isArray(data) ? data : [data];
+            arr.forEach(s => {
+              if (!sessions[dateStr]) sessions[dateStr] = [];
+              sessions[dateStr].push(s);
+            });
+          })
+          .catch(() => {})
+      );
+    }
+    await Promise.all(promises);
+    cache[key] = sessions;
+    return sessions;
+  }
+
+  function label(s) {
+    return s.sessionType === "morning"
+      ? `🌅 ${s.startTime?.slice(0,5)} ${s.promo}`
+      : `🌆 ${s.startTime?.slice(0,5)} ${s.promo}`;
+  }
+
+  async function render() {
+    const year = current.getFullYear();
+    const month = current.getMonth() + 1;
+    document.getElementById("monthLabel").textContent = `${MONTHS[month-1]} ${year}`;
+    document.getElementById("loading").style.display = "block";
+    document.getElementById("grid").style.display = "none";
+
+    const sessions = await fetchMonth(year, month);
+
+    document.getElementById("loading").style.display = "none";
+    const grid = document.getElementById("grid");
+    grid.style.display = "grid";
+    grid.innerHTML = "";
+
+    DAYS.forEach(d => {
+      const h = document.createElement("div");
+      h.className = "day-header";
+      h.textContent = d;
+      grid.appendChild(h);
+    });
+
+    const firstDay = new Date(year, month - 1, 1).getDay(); // 0=Sun
+    const offset = (firstDay + 6) % 7; // Mon=0
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const today = new Date();
+
+    for (let i = 0; i < offset; i++) {
+      const e = document.createElement("div");
+      e.className = "cell empty";
+      grid.appendChild(e);
+    }
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const cell = document.createElement("div");
+      cell.className = "cell";
+      if (today.getFullYear() === year && today.getMonth()+1 === month && today.getDate() === d)
+        cell.classList.add("today");
+
+      const num = document.createElement("div");
+      num.className = "cell-num";
+      num.textContent = d;
+      cell.appendChild(num);
+
+      (sessions[dateStr] || []).forEach(s => {
+        const tag = document.createElement("div");
+        tag.className = `session ${s.sessionType}`;
+        tag.textContent = label(s);
+        tag.title = `${s.promo} — ${s.startTime?.slice(0,5)} → ${s.endTime?.slice(0,5)}`;
+        cell.appendChild(tag);
+      });
+
+      grid.appendChild(cell);
+    }
+  }
+
+  document.getElementById("prev").addEventListener("click", () => {
+    current = new Date(current.getFullYear(), current.getMonth() - 1, 1);
+    render();
+  });
+  document.getElementById("next").addEventListener("click", () => {
+    current = new Date(current.getFullYear(), current.getMonth() + 1, 1);
+    render();
+  });
+
+  render();
+</script>
+</body>
+</html>
