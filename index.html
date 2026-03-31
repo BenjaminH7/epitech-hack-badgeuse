@@ -1,399 +1,577 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Dashboard</title>
-<style>
-  :root {
-    --bg: #0d0d0d;
-    --fg: #eee;
-    --muted: #888;
-    --border: #333;
-    --accent: #ffd54f;
-    --ok: #4caf50;
-    --ko: #f44336;
-  }
-  * { box-sizing: border-box; }
-  body { font-family: monospace; background: var(--bg); color: var(--fg); padding: 2rem; }
-  #status { font-size: clamp(.95rem, 2.5vw, 1.4rem); margin-bottom: 1.2rem; word-break: break-word; line-height: 1.4; }
-  .on  { color: var(--ok); }
-  .off { color: var(--ko); }
-  .top { display:flex; justify-content:space-between; align-items:center; gap: 1rem; margin-bottom: 1rem; }
-  select#promoFilter {
-    background: #1b1b1b;
-    border: 1px solid var(--border);
-    color: var(--fg);
-    padding: .5rem .8rem;
-    font-family: monospace;
-    font-size: .95rem;
-    border-radius: .4rem;
-    cursor: pointer;
-  }
-  .latest-wrap { display: grid; gap: .6rem; margin-bottom: 1.2rem; }
-  .latest-label { color: var(--muted); font-size: .95rem; }
-  .latest-code {
-    background: #151515;
-    border: 1px solid #1f1f1f;
-    padding: 1.1rem 1rem;
-    font-size: clamp(1.5rem, 5vw, 2.2rem);
-    letter-spacing: .08rem;
-    text-align: center;
-    border-radius: .5rem;
-    min-height: 3.6rem;
-    word-break: break-all;
-  }
-  .copy-btn {
-    background: #1b1b1b;
-    border: 1px solid var(--border);
-    color: var(--fg);
-    padding: .7rem 1rem;
-    cursor: pointer;
-    font-family: monospace;
-    font-size: 1rem;
-    border-radius: .4rem;
-  }
-  .copy-btn:active { transform: translateY(1px); }
-  .copy-btn[data-state="ok"] { border-color: var(--ok); color: var(--ok); }
-  .copy-btn[data-state="err"] { border-color: var(--ko); color: var(--ko); }
-  table { width: 100%; border-collapse: collapse; }
-  th { text-align: left; color: var(--muted); border-bottom: 1px solid var(--border); padding: .5rem .8rem; }
-  td { padding: .55rem .8rem; border-bottom: 1px solid #1e1e1e; }
-  tr:first-child td { color: var(--accent); }
-
-  /* Modal Badger */
-  .modal-overlay {
-    display: none;
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,.7);
-    align-items: center; justify-content: center;
-    z-index: 100;
-  }
-  .modal-overlay.open { display: flex; }
-  .modal {
-    background: #141414;
-    border: 1px solid #333;
-    border-radius: .6rem;
-    padding: 1.4rem;
-    display: flex; flex-direction: column; gap: .8rem;
-    width: min(320px, 90vw);
-    font-family: monospace;
-  }
-  .modal input {
-    background: #1a1a1a;
-    border: 1px solid #333;
-    color: #eee;
-    padding: .65rem .8rem;
-    font-family: monospace;
-    font-size: .95rem;
-    border-radius: .4rem;
-    outline: none;
-  }
-  .modal input:focus { border-color: #555; }
-  .modal-actions { display: flex; gap: .6rem; }
-  .modal-actions button {
-    flex: 1;
-    background: #1b1b1b;
-    border: 1px solid #444;
-    color: #eee;
-    padding: .65rem;
-    cursor: pointer;
-    font-family: monospace;
-    font-size: .95rem;
-    border-radius: .4rem;
-  }
-  .modal-actions button:hover { background: #222; }
-  #badgeResult {
-    font-size: .8rem;
-    word-break: break-all;
-    color: #4caf50;
-    display: none;
-  }
-  #badgeResult.err { color: #f44336; }
-
-  @media (max-width: 720px) {
-    body { padding: .75rem; }
-    .top { flex-direction: column; align-items: stretch; gap: .5rem; }
-    .top > div { flex-direction: column; gap: .5rem; }
-    .top > div form, .top > div select, .top > div button { width: 100%; }
-    select#promoFilter { width: 100%; }
-    .latest-wrap { margin-bottom: .9rem; gap: .5rem; }
-    .latest-code { padding: .9rem .7rem; min-height: 3rem; }
-    .copy-btn { width: 100%; font-size: 1rem; padding: .75rem .9rem; }
-
-    table { font-size: .88rem; }
-    thead { display: none; }
-    tbody, tr, td { display: block; width: 100%; }
-    tr {
-      background: #141414;
-      border: 1px solid #1f1f1f;
-      border-radius: .5rem;
-      margin-bottom: .55rem;
-      padding: .4rem .65rem;
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard</title>
+  <style>
+    :root {
+      --bg: #0d0d0d;
+      --fg: #eee;
+      --muted: #888;
+      --border: #333;
+      --accent: #ffd54f;
+      --ok: #4caf50;
+      --ko: #f44336;
     }
-    td { border: none; padding: .3rem 0; display: flex; gap: .4rem; align-items: baseline; }
-    td::before {
-      content: attr(data-label) " :";
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: monospace;
+      background: var(--bg);
+      color: var(--fg);
+      padding: 2rem;
+    }
+
+    #status {
+      font-size: clamp(.95rem, 2.5vw, 1.4rem);
+      margin-bottom: 1.2rem;
+      word-break: break-word;
+      line-height: 1.4;
+    }
+
+    .on {
+      color: var(--ok);
+    }
+
+    .off {
+      color: var(--ko);
+    }
+
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    select#promoFilter {
+      background: #1b1b1b;
+      border: 1px solid var(--border);
+      color: var(--fg);
+      padding: .5rem .8rem;
+      font-family: monospace;
+      font-size: .95rem;
+      border-radius: .4rem;
+      cursor: pointer;
+    }
+
+    .latest-wrap {
+      display: grid;
+      gap: .6rem;
+      margin-bottom: 1.2rem;
+    }
+
+    .latest-label {
       color: var(--muted);
-      flex-shrink: 0;
-      min-width: 3.5rem;
+      font-size: .95rem;
     }
-    tr:first-child td { color: var(--fg); }
-    tr:first-child td:last-child { color: var(--accent); }
 
-    .modal { padding: 1rem; gap: .65rem; }
-    .modal input { font-size: .9rem; padding: .6rem .7rem; }
-    .modal-actions button { padding: .6rem; font-size: .9rem; }
-  }
+    .latest-code {
+      background: #151515;
+      border: 1px solid #1f1f1f;
+      padding: 1.1rem 1rem;
+      font-size: clamp(1.5rem, 5vw, 2.2rem);
+      letter-spacing: .08rem;
+      text-align: center;
+      border-radius: .5rem;
+      min-height: 3.6rem;
+      word-break: break-all;
+    }
 
-  @media (max-width: 380px) {
-    body { padding: .5rem; }
-    .modal { width: 95vw; }
-  }
-</style>
+    .copy-btn {
+      background: #1b1b1b;
+      border: 1px solid var(--border);
+      color: var(--fg);
+      padding: .7rem 1rem;
+      cursor: pointer;
+      font-family: monospace;
+      font-size: 1rem;
+      border-radius: .4rem;
+    }
+
+    .copy-btn:active {
+      transform: translateY(1px);
+    }
+
+    .copy-btn[data-state="ok"] {
+      border-color: var(--ok);
+      color: var(--ok);
+    }
+
+    .copy-btn[data-state="err"] {
+      border-color: var(--ko);
+      color: var(--ko);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th {
+      text-align: left;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      padding: .5rem .8rem;
+    }
+
+    td {
+      padding: .55rem .8rem;
+      border-bottom: 1px solid #1e1e1e;
+    }
+
+    tr:first-child td {
+      color: var(--accent);
+    }
+
+    /* Modal Badger */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .7);
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    .modal-overlay.open {
+      display: flex;
+    }
+
+    .modal {
+      background: #141414;
+      border: 1px solid #333;
+      border-radius: .6rem;
+      padding: 1.4rem;
+      display: flex;
+      flex-direction: column;
+      gap: .8rem;
+      width: min(320px, 90vw);
+      font-family: monospace;
+    }
+
+    .modal input {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      color: #eee;
+      padding: .65rem .8rem;
+      font-family: monospace;
+      font-size: .95rem;
+      border-radius: .4rem;
+      outline: none;
+    }
+
+    .modal input:focus {
+      border-color: #555;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: .6rem;
+    }
+
+    .modal-actions button {
+      flex: 1;
+      background: #1b1b1b;
+      border: 1px solid #444;
+      color: #eee;
+      padding: .65rem;
+      cursor: pointer;
+      font-family: monospace;
+      font-size: .95rem;
+      border-radius: .4rem;
+    }
+
+    .modal-actions button:hover {
+      background: #222;
+    }
+
+    #badgeResult {
+      font-size: .8rem;
+      word-break: break-all;
+      color: #4caf50;
+      display: none;
+    }
+
+    #badgeResult.err {
+      color: #f44336;
+    }
+
+    @media (max-width: 720px) {
+      body {
+        padding: .75rem;
+      }
+
+      .top {
+        flex-direction: column;
+        align-items: stretch;
+        gap: .5rem;
+      }
+
+      .top>div {
+        flex-direction: column;
+        gap: .5rem;
+      }
+
+      .top>div form,
+      .top>div select,
+      .top>div button {
+        width: 100%;
+      }
+
+      select#promoFilter {
+        width: 100%;
+      }
+
+      .latest-wrap {
+        margin-bottom: .9rem;
+        gap: .5rem;
+      }
+
+      .latest-code {
+        padding: .9rem .7rem;
+        min-height: 3rem;
+      }
+
+      .copy-btn {
+        width: 100%;
+        font-size: 1rem;
+        padding: .75rem .9rem;
+      }
+
+      table {
+        font-size: .88rem;
+      }
+
+      thead {
+        display: none;
+      }
+
+      tbody,
+      tr,
+      td {
+        display: block;
+        width: 100%;
+      }
+
+      tr {
+        background: #141414;
+        border: 1px solid #1f1f1f;
+        border-radius: .5rem;
+        margin-bottom: .55rem;
+        padding: .4rem .65rem;
+      }
+
+      td {
+        border: none;
+        padding: .3rem 0;
+        display: flex;
+        gap: .4rem;
+        align-items: baseline;
+      }
+
+      td::before {
+        content: attr(data-label) " :";
+        color: var(--muted);
+        flex-shrink: 0;
+        min-width: 3.5rem;
+      }
+
+      tr:first-child td {
+        color: var(--fg);
+      }
+
+      tr:first-child td:last-child {
+        color: var(--accent);
+      }
+
+      .modal {
+        padding: 1rem;
+        gap: .65rem;
+      }
+
+      .modal input {
+        font-size: .9rem;
+        padding: .6rem .7rem;
+      }
+
+      .modal-actions button {
+        padding: .6rem;
+        font-size: .9rem;
+      }
+    }
+
+    @media (max-width: 380px) {
+      body {
+        padding: .5rem;
+      }
+
+      .modal {
+        width: 95vw;
+      }
+    }
+  </style>
 </head>
+
 <body>
-<div class="top">
-  <div id="status">⏳ Connexion...</div>
-  <div style="display:flex;gap:.7rem;align-items:center">
-    <select id="promoFilter"><option value="2026">MSc 2026</option></select>
-    <button class="copy-btn" id="openBadgeBtn">🔖 Badger</button>
-    <a href="/calendar" style="display:contents"><button class="copy-btn">📅 Calendrier</button></a>
-    <form method="POST" action="/logout" style="display:contents">
-      <button class="copy-btn" style="background:none;color:#888">Déconnexion</button>
-    </form>
-  </div>
-</div>
-<div class="latest-wrap">
-  <div class="latest-label">Dernier code</div>
-  <div id="latestCode" class="latest-code">—</div>
-  <button id="copyBtn" class="copy-btn" data-state="">Copier le code</button>
-</div>
-<table>
-  <thead><tr><th>Heure</th><th>Promo</th><th>Code</th></tr></thead>
-  <tbody id="codes"></tbody>
-</table>
-<!-- Modal Badger -->
-<div class="modal-overlay" id="badgeModal">
-  <div class="modal">
-    <!-- Étape 1 : login -->
-    <div id="stepLogin">
-      <div style="color:#888;font-size:.9rem;margin-bottom:.4rem">Connexion Badger</div>
-      <input id="badgeEmail" type="email" placeholder="Email" autocomplete="off" />
-      <input id="badgePassword" type="password" placeholder="Mot de passe" />
-      <div id="loginError" style="color:#f44336;font-size:.82rem;display:none"></div>
-      <div class="modal-actions" style="margin-top:.4rem">
-        <button id="badgeSubmit">Se connecter</button>
-        <button id="badgeClose" style="color:#888">Annuler</button>
-      </div>
-    </div>
-    <!-- Étape 2 : badger -->
-    <div id="stepSnipe" style="display:none">
-      <div style="color:#888;font-size:.82rem;margin-bottom:.3rem">Token récupéré ✅</div>
-      <div id="tokenPreview" style="font-size:.75rem;color:#555;word-break:break-all;margin-bottom:.6rem"></div>
-      <input id="snipeUserId" placeholder="User ID (ex: 12)" />
-      <input id="snipeCardId" placeholder="Card ID (ex: 04 BB 30 BA 4A 1C 90)" />
-      <select id="snipeSessionType" style="background:#1a1a1a;border:1px solid #333;color:#eee;padding:.65rem .8rem;font-family:monospace;font-size:.95rem;border-radius:.4rem;outline:none">
-        <option value="afternoon">Après-midi (afternoon)</option>
-        <option value="morning">Matin (morning)</option>
+  <div class="top">
+    <div id="status">⏳ Connexion...</div>
+    <div style="display:flex;gap:.7rem;align-items:center">
+      <select id="promoFilter">
+        <option value="2026">MSc 2026</option>
       </select>
-      <div id="snipeResult" style="font-size:.82rem;word-break:break-all;display:none;white-space:pre-wrap"></div>
-      <div class="modal-actions">
-        <button id="snipeSubmit">🎯 Badger</button>
-        <button id="snipeClose" style="color:#888">Fermer</button>
+      <button class="copy-btn" id="openBadgeBtn">🔖 Badger</button>
+      <a href="/calendar.html" style="display:contents"><button class="copy-btn">📅 Calendrier</button></a>
+      <form method="POST" action="/logout" style="display:contents">
+        <button class="copy-btn" style="background:none;color:#888">Déconnexion</button>
+      </form>
+    </div>
+  </div>
+  <div class="latest-wrap">
+    <div class="latest-label">Dernier code</div>
+    <div id="latestCode" class="latest-code">—</div>
+    <button id="copyBtn" class="copy-btn" data-state="">Copier le code</button>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Heure</th>
+        <th>Promo</th>
+        <th>Code</th>
+      </tr>
+    </thead>
+    <tbody id="codes"></tbody>
+  </table>
+  <!-- Modal Badger -->
+  <div class="modal-overlay" id="badgeModal">
+    <div class="modal">
+      <!-- Étape 1 : login -->
+      <div id="stepLogin">
+        <div style="color:#888;font-size:.9rem;margin-bottom:.4rem">Connexion Badger</div>
+        <input id="badgeEmail" type="email" placeholder="Email" autocomplete="off" />
+        <input id="badgePassword" type="password" placeholder="Mot de passe" />
+        <div id="loginError" style="color:#f44336;font-size:.82rem;display:none"></div>
+        <div class="modal-actions" style="margin-top:.4rem">
+          <button id="badgeSubmit">Se connecter</button>
+          <button id="badgeClose" style="color:#888">Annuler</button>
+        </div>
+      </div>
+      <!-- Étape 2 : badger -->
+      <div id="stepSnipe" style="display:none">
+        <div style="color:#888;font-size:.82rem;margin-bottom:.3rem">Token récupéré ✅</div>
+        <div id="tokenPreview" style="font-size:.75rem;color:#555;word-break:break-all;margin-bottom:.6rem"></div>
+        <input id="snipeUserId" placeholder="User ID (ex: 12)" />
+        <input id="snipeCardId" placeholder="Card ID (ex: 04 BB 30 BA 4A 1C 90)" />
+        <select id="snipeSessionType"
+          style="background:#1a1a1a;border:1px solid #333;color:#eee;padding:.65rem .8rem;font-family:monospace;font-size:.95rem;border-radius:.4rem;outline:none">
+          <option value="afternoon">Après-midi (afternoon)</option>
+          <option value="morning">Matin (morning)</option>
+        </select>
+        <div id="snipeResult" style="font-size:.82rem;word-break:break-all;display:none;white-space:pre-wrap"></div>
+        <div class="modal-actions">
+          <button id="snipeSubmit">🎯 Badger</button>
+          <button id="snipeClose" style="color:#888">Fermer</button>
+        </div>
       </div>
     </div>
   </div>
-</div>
 
-<script src="/socket.io/socket.io.js"></script>
-<script>
-  const socket = io();
-  const statusEl = document.getElementById("status");
-  const codesEl  = document.getElementById("codes");
-  const latestCodeEl = document.getElementById("latestCode");
-  const copyBtn = document.getElementById("copyBtn");
-  const promoFilter = document.getElementById("promoFilter");
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const statusEl = document.getElementById("status");
+    const codesEl = document.getElementById("codes");
+    const latestCodeEl = document.getElementById("latestCode");
+    const copyBtn = document.getElementById("copyBtn");
+    const promoFilter = document.getElementById("promoFilter");
 
-  let allCodes = [];
-  let promos = new Set(["2026"]);
+    let allCodes = [];
+    let promos = new Set(["2026"]);
 
-  function currentFilter() { return promoFilter.value; }
+    function currentFilter() { return promoFilter.value; }
 
-  function matchesFilter(entry) {
-    const f = currentFilter();
-    return f === "all" || JSON.stringify(entry).includes(f);
-  }
-
-  function rebuildPromoSelect() {
-    const current = promoFilter.value;
-    promoFilter.innerHTML = "";
-    const allOpt = document.createElement("option");
-    allOpt.value = "all"; allOpt.textContent = "Toutes les promos";
-    promoFilter.appendChild(allOpt);
-    [...promos].sort().forEach(p => {
-      const opt = document.createElement("option");
-      opt.value = p; opt.textContent = `MSc ${p}`;
-      promoFilter.appendChild(opt);
-    });
-    promoFilter.value = promos.has(current) || current === "all" ? current : "2026";
-  }
-
-  function extractPromo(entry) {
-    const m = JSON.stringify(entry).match(/20\d{2}/);
-    if (m) promos.add(m[0]);
-  }
-
-  function renderTable() {
-    codesEl.innerHTML = "";
-    allCodes.filter(matchesFilter).forEach(e => addRow(e, false));
-  }
-
-  promoFilter.addEventListener("change", () => {
-    renderTable();
-    const visible = allCodes.filter(matchesFilter);
-    setLatest(visible[0] || null);
-  });
-
-  async function copyLatest() {
-    const text = latestCodeEl.textContent.trim();
-    if (!text || text === "—") return;
-    try {
-      await navigator.clipboard.writeText(text);
-      copyBtn.dataset.state = "ok";
-      copyBtn.textContent = "Copié";
-    } catch (err) {
-      copyBtn.dataset.state = "err";
-      copyBtn.textContent = "Copie refusée";
+    function matchesFilter(entry) {
+      const f = currentFilter();
+      return f === "all" || JSON.stringify(entry).includes(f);
     }
-    setTimeout(() => {
-      copyBtn.dataset.state = "";
-      copyBtn.textContent = "Copier le code";
-    }, 1200);
-  }
 
-  copyBtn.addEventListener("click", copyLatest);
+    function rebuildPromoSelect() {
+      const current = promoFilter.value;
+      promoFilter.innerHTML = "";
+      const allOpt = document.createElement("option");
+      allOpt.value = "all"; allOpt.textContent = "Toutes les promos";
+      promoFilter.appendChild(allOpt);
+      [...promos].sort().forEach(p => {
+        const opt = document.createElement("option");
+        opt.value = p; opt.textContent = `MSc ${p}`;
+        promoFilter.appendChild(opt);
+      });
+      promoFilter.value = promos.has(current) || current === "all" ? current : "2026";
+    }
 
-  function setStatus(connected, lastSeen) {
-    statusEl.className = connected ? "on" : "off";
-    statusEl.textContent = connected
-      ? `✅ Connecté (depuis ${lastSeen})`
-      : "❌ Déconnecté — en attente de reconnexion...";
-  }
+    function extractPromo(entry) {
+      const m = JSON.stringify(entry).match(/20\d{2}/);
+      if (m) promos.add(m[0]);
+    }
 
-  function addRow(entry, prepend = true) {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
+    function renderTable() {
+      codesEl.innerHTML = "";
+      allCodes.filter(matchesFilter).forEach(e => addRow(e, false));
+    }
+
+    promoFilter.addEventListener("change", () => {
+      renderTable();
+      const visible = allCodes.filter(matchesFilter);
+      setLatest(visible[0] || null);
+    });
+
+    async function copyLatest() {
+      const text = latestCodeEl.textContent.trim();
+      if (!text || text === "—") return;
+      try {
+        await navigator.clipboard.writeText(text);
+        copyBtn.dataset.state = "ok";
+        copyBtn.textContent = "Copié";
+      } catch (err) {
+        copyBtn.dataset.state = "err";
+        copyBtn.textContent = "Copie refusée";
+      }
+      setTimeout(() => {
+        copyBtn.dataset.state = "";
+        copyBtn.textContent = "Copier le code";
+      }, 1200);
+    }
+
+    copyBtn.addEventListener("click", copyLatest);
+
+    function setStatus(connected, lastSeen) {
+      statusEl.className = connected ? "on" : "off";
+      statusEl.textContent = connected
+        ? `✅ Connecté (depuis ${lastSeen})`
+        : "❌ Déconnecté — en attente de reconnexion...";
+    }
+
+    function addRow(entry, prepend = true) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
       <td data-label="Heure">${entry.time}</td>
       <td data-label="Promo">${entry.classroom}</td>
       <td data-label="Code">${entry.code}</td>
     `;
-    prepend ? codesEl.prepend(tr) : codesEl.appendChild(tr);
-  }
-
-  function setLatest(entry) {
-    latestCodeEl.textContent = entry && entry.code ? entry.code : "—";
-  }
-
-  // Badger
-  let badgeToken = null;
-  const badgeModal = document.getElementById("badgeModal");
-
-  function closeModal() {
-    badgeModal.classList.remove("open");
-    badgeToken = null;
-    document.getElementById("stepLogin").style.display = "";
-    document.getElementById("stepSnipe").style.display = "none";
-    document.getElementById("badgeEmail").value = "";
-    document.getElementById("badgePassword").value = "";
-    document.getElementById("loginError").style.display = "none";
-    document.getElementById("snipeResult").style.display = "none";
-  }
-
-  document.getElementById("openBadgeBtn").addEventListener("click", () => badgeModal.classList.add("open"));
-  document.getElementById("badgeClose").addEventListener("click", closeModal);
-  document.getElementById("snipeClose").addEventListener("click", closeModal);
-
-  document.getElementById("badgeSubmit").addEventListener("click", async () => {
-    const email = document.getElementById("badgeEmail").value.trim();
-    const password = document.getElementById("badgePassword").value;
-    const errEl = document.getElementById("loginError");
-    if (!email || !password) return;
-    errEl.style.display = "none";
-    try {
-      const res = await fetch("/badge", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ email, password })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(JSON.stringify(data.error));
-      badgeToken = data.token;
-      document.getElementById("tokenPreview").textContent =
-        `${data.email} — ${data.promo} — token: ${badgeToken.slice(0, 30)}...`;
-      document.getElementById("snipeUserId").value = data.userId || "";
-      document.getElementById("snipeCardId").value = data.cardId || "";
-      document.getElementById("stepLogin").style.display = "none";
-      document.getElementById("stepSnipe").style.display = "";
-    } catch (err) {
-      errEl.textContent = err.message;
-      errEl.style.display = "block";
+      prepend ? codesEl.prepend(tr) : codesEl.appendChild(tr);
     }
-  });
 
-  document.getElementById("snipeSubmit").addEventListener("click", async () => {
-    const userId = document.getElementById("snipeUserId").value.trim();
-    const cardId = document.getElementById("snipeCardId").value.trim();
-    const sessionType = document.getElementById("snipeSessionType").value;
-    const resultEl = document.getElementById("snipeResult");
-    if (!userId || !cardId) return;
-    resultEl.style.display = "none";
-    try {
-      const res = await fetch("/badge/snipe", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ token: badgeToken, userId, cardId, sessionType })
-      });
-      const data = await res.json();
-      resultEl.style.display = "block";
-      if (!res.ok || data.error) {
-        resultEl.style.color = "#f44336";
-        resultEl.textContent = JSON.stringify(data.error, null, 2);
-      } else if (!data.found) {
-        resultEl.style.color = "#ffd54f";
-        resultEl.textContent = data.message;
-      } else {
-        resultEl.style.color = "#4caf50";
-        resultEl.textContent = JSON.stringify(data.result, null, 2);
+    function setLatest(entry) {
+      latestCodeEl.textContent = entry && entry.code ? entry.code : "—";
+    }
+
+    // Badger
+    let badgeToken = null;
+    const badgeModal = document.getElementById("badgeModal");
+
+    function closeModal() {
+      badgeModal.classList.remove("open");
+      badgeToken = null;
+      document.getElementById("stepLogin").style.display = "";
+      document.getElementById("stepSnipe").style.display = "none";
+      document.getElementById("badgeEmail").value = "";
+      document.getElementById("badgePassword").value = "";
+      document.getElementById("loginError").style.display = "none";
+      document.getElementById("snipeResult").style.display = "none";
+    }
+
+    document.getElementById("openBadgeBtn").addEventListener("click", () => badgeModal.classList.add("open"));
+    document.getElementById("badgeClose").addEventListener("click", closeModal);
+    document.getElementById("snipeClose").addEventListener("click", closeModal);
+
+    document.getElementById("badgeSubmit").addEventListener("click", async () => {
+      const email = document.getElementById("badgeEmail").value.trim();
+      const password = document.getElementById("badgePassword").value;
+      const errEl = document.getElementById("loginError");
+      if (!email || !password) return;
+      errEl.style.display = "none";
+      try {
+        const res = await fetch("/badge", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ email, password })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(JSON.stringify(data.error));
+        badgeToken = data.token;
+        document.getElementById("tokenPreview").textContent =
+          `${data.email} — ${data.promo} — token: ${badgeToken.slice(0, 30)}...`;
+        document.getElementById("snipeUserId").value = data.userId || "";
+        document.getElementById("snipeCardId").value = data.cardId || "";
+        document.getElementById("stepLogin").style.display = "none";
+        document.getElementById("stepSnipe").style.display = "";
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.style.display = "block";
       }
-    } catch (err) {
-      resultEl.style.color = "#f44336";
-      resultEl.textContent = err.message;
-      resultEl.style.display = "block";
-    }
-  });
+    });
 
-  socket.on("init", ({ connected, lastSeen, codes }) => {
-    setStatus(connected, lastSeen);
-    allCodes = codes || [];
-    allCodes.forEach(extractPromo);
-    rebuildPromoSelect();
-    promoFilter.value = "2026";
-    renderTable();
-    const visible = allCodes.filter(matchesFilter);
-    setLatest(visible[0] || null);
-  });
+    document.getElementById("snipeSubmit").addEventListener("click", async () => {
+      const userId = document.getElementById("snipeUserId").value.trim();
+      const cardId = document.getElementById("snipeCardId").value.trim();
+      const sessionType = document.getElementById("snipeSessionType").value;
+      const resultEl = document.getElementById("snipeResult");
+      if (!userId || !cardId) return;
+      resultEl.style.display = "none";
+      try {
+        const res = await fetch("/badge/snipe", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ token: badgeToken, userId, cardId, sessionType })
+        });
+        const data = await res.json();
+        resultEl.style.display = "block";
+        if (!res.ok || data.error) {
+          resultEl.style.color = "#f44336";
+          resultEl.textContent = JSON.stringify(data.error, null, 2);
+        } else if (!data.found) {
+          resultEl.style.color = "#ffd54f";
+          resultEl.textContent = data.message;
+        } else {
+          resultEl.style.color = "#4caf50";
+          resultEl.textContent = JSON.stringify(data.result, null, 2);
+        }
+      } catch (err) {
+        resultEl.style.color = "#f44336";
+        resultEl.textContent = err.message;
+        resultEl.style.display = "block";
+      }
+    });
 
-  socket.on("status", ({ connected, lastSeen }) => setStatus(connected, lastSeen));
-  socket.on("code", (entry) => {
-    allCodes.unshift(entry);
-    extractPromo(entry);
-    rebuildPromoSelect();
-    if (matchesFilter(entry)) {
-      addRow(entry, true);
-      setLatest(entry);
-    }
-  });
-</script>
+    socket.on("init", ({ connected, lastSeen, codes }) => {
+      setStatus(connected, lastSeen);
+      allCodes = codes || [];
+      allCodes.forEach(extractPromo);
+      rebuildPromoSelect();
+      promoFilter.value = "2026";
+      renderTable();
+      const visible = allCodes.filter(matchesFilter);
+      setLatest(visible[0] || null);
+    });
+
+    socket.on("status", ({ connected, lastSeen }) => setStatus(connected, lastSeen));
+    socket.on("code", (entry) => {
+      allCodes.unshift(entry);
+      extractPromo(entry);
+      rebuildPromoSelect();
+      if (matchesFilter(entry)) {
+        addRow(entry, true);
+        setLatest(entry);
+      }
+    });
+  </script>
 </body>
+
 </html>
