@@ -96,12 +96,9 @@ app.get("/codeABCZ", (req, res) => {
     res.json({ latest });
 });
 
-ioServer.use((sock, next) => {
-    sessionMiddleware(sock.request, sock.request.res || {}, () => {
-        sock.request.session?.auth ? next() : next(new Error("Unauthorized"));
-    });
+ioServer.on("connection", (sock) => {
+    sock.emit("init", status);
 });
-ioServer.on("connection", (sock) => sock.emit("init", status));
 
 function broadcast(event, data) {
     ioServer.emit(event, data);
