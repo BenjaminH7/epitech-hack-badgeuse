@@ -452,7 +452,21 @@
     // ── socket ────────────────────────────────────────────────────────────────
     const socket = io({ transports: ["websocket"] });
 
-    socket.on("init", ({ connected, lastSeen, codes }) => {
+    socket.on("connect", () => {
+      console.log("[socket] ✅ connecté au serveur local, id=", socket.id);
+    });
+
+    socket.on("connect_error", (err) => {
+      console.error("[socket] ❌ connect_error:", err.message, err);
+    });
+
+    socket.on("disconnect", (reason) => {
+      console.warn("[socket] ⚠️ disconnect:", reason);
+    });
+
+    socket.on("init", (data) => {
+      console.log("[socket] init reçu:", data);
+      const { connected, lastSeen, codes } = data;
       setStatus(connected, lastSeen);
       allCodes = codes || [];
       allCodes.forEach(extractPromo);
@@ -462,11 +476,13 @@
       setLatest(allCodes.filter(matchesFilter)[0] || null);
     });
 
-    socket.on("status", ({ connected, lastSeen }) => {
-      setStatus(connected, lastSeen);
+    socket.on("status", (data) => {
+      console.log("[socket] status reçu:", data);
+      setStatus(data.connected, data.lastSeen);
     });
 
     socket.on("code", (entry) => {
+      console.log("[socket] code reçu:", entry);
       allCodes.unshift(entry);
       extractPromo(entry);
       rebuildPromoSelect();
