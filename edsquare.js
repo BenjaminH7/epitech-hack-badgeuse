@@ -3,6 +3,7 @@ const axios = require("axios");
 
 const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1487064311330377829/EASOkoB2C6mw7BGHptwFNOwyF6z8uqcjAihyZv3ZM-haKqxtLWzQKK5elUmF3BQxl3wO";
 const SERVER_URL = "https://milkyway.strasbourg.epitech.eu";
+const SERVER_PATH = "/my-codes-ZXBpdGVjaA==/socket.io/";
 
 async function sendDiscord(classroom, code) {
     await axios.post(DISCORD_WEBHOOK, {
@@ -12,6 +13,9 @@ async function sendDiscord(classroom, code) {
 
 function connect() {
     const socket = io(SERVER_URL, {
+        path: SERVER_PATH,
+        transports: ["websocket"],
+        upgrade: false,
         extraHeaders: {
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
             "Origin": SERVER_URL,

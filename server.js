@@ -8,7 +8,8 @@ const bcrypt = require("bcrypt");
 const session = require("express-session");
 
 const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1487064311330377829/EASOkoB2C6mw7BGHptwFNOwyF6z8uqcjAihyZv3ZM-haKqxtLWzQKK5elUmF3BQxl3wO";
-const SERVER_URL = "https://milkyway.strasbourg.epitech.eu/my-codes-ZXBpdGVjaA==/";
+const SERVER_URL = "https://milkyway.strasbourg.epitech.eu";
+const SERVER_PATH = "/my-codes-ZXBpdGVjaA==/socket.io/";
 
 const ADMIN_USER = "ADMIN";
 const ADMIN_HASH = "$2b$12$o91Qlibpp.xvDTdVu7/5n.66dj879Cy.eNFAmyDPmv.bsTJTdajgy";
@@ -153,6 +154,7 @@ async function sendDiscord(classroom, code) {
 
 function connect() {
     const socket = io(SERVER_URL, {
+        path: SERVER_PATH,
         transports: ["websocket"],
         upgrade: false,
         extraHeaders: {
