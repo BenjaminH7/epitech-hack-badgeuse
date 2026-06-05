@@ -387,21 +387,33 @@
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
-    const socket = io();
-    const statusEl = document.getElementById("status");
-    const codesEl = document.getElementById("codes");
-    const latestCodeEl = document.getElementById("latestCode");
-    const copyBtn = document.getElementById("copyBtn");
-    const promoFilter = document.getElementById("promoFilter");
-
+    // ── état ──────────────────────────────────────────────────────────────────
     let allCodes = [];
     let promos = new Set(["2026"]);
 
-    function currentFilter() { return promoFilter.value; }
+    // ── éléments DOM ──────────────────────────────────────────────────────────
+    const statusEl      = document.getElementById("status");
+    const codesEl       = document.getElementById("codes");
+    const latestCodeEl  = document.getElementById("latestCode");
+    const copyBtn       = document.getElementById("copyBtn");
+    const promoFilter   = document.getElementById("promoFilter");
+
+    // ── helpers ───────────────────────────────────────────────────────────────
+    function setStatus(connected, lastSeen) {
+      statusEl.className   = connected ? "on" : "off";
+      statusEl.textContent = connected
+        ? `✅ Connecté (depuis ${lastSeen})`
+        : "❌ Déconnecté — en attente de reconnexion...";
+    }
 
     function matchesFilter(entry) {
-      const f = currentFilter();
+      const f = promoFilter.value;
       return f === "all" || JSON.stringify(entry).includes(f);
+    }
+
+    function extractPromo(entry) {
+      const m = JSON.stringify(entry).match(/20\d{2}/);
+      if (m) promos.add(m[0]);
     }
 
     function rebuildPromoSelect() {
@@ -418,30 +430,66 @@
       promoFilter.value = promos.has(current) || current === "all" ? current : "2026";
     }
 
-    function extractPromo(entry) {
-      const m = JSON.stringify(entry).match(/20\d{2}/);
-      if (m) promos.add(m[0]);
-    }
-
     function renderTable() {
       codesEl.innerHTML = "";
       allCodes.filter(matchesFilter).forEach(e => addRow(e, false));
     }
 
-    promoFilter.addEventListener("change", () => {
+    function addRow(entry, prepend = true) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td data-label="Heure">${entry.time}</td>
+        <td data-label="Promo">${entry.classroom}</td>
+        <td data-label="Code">${entry.code}</td>
+      `;
+      prepend ? codesEl.prepend(tr) : codesEl.appendChild(tr);
+    }
+
+    function setLatest(entry) {
+      latestCodeEl.textContent = entry?.code || "—";
+    }
+
+    // ── socket ────────────────────────────────────────────────────────────────
+    const socket = io({ transports: ["websocket"] });
+
+    socket.on("init", ({ connected, lastSeen, codes }) => {
+      setStatus(connected, lastSeen);
+      allCodes = codes || [];
+      allCodes.forEach(extractPromo);
+      rebuildPromoSelect();
+      promoFilter.value = "2026";
       renderTable();
-      const visible = allCodes.filter(matchesFilter);
-      setLatest(visible[0] || null);
+      setLatest(allCodes.filter(matchesFilter)[0] || null);
     });
 
-    async function copyLatest() {
+    socket.on("status", ({ connected, lastSeen }) => {
+      setStatus(connected, lastSeen);
+    });
+
+    socket.on("code", (entry) => {
+      allCodes.unshift(entry);
+      extractPromo(entry);
+      rebuildPromoSelect();
+      if (matchesFilter(entry)) {
+        addRow(entry, true);
+        setLatest(entry);
+      }
+    });
+
+    // ── copier ────────────────────────────────────────────────────────────────
+    promoFilter.addEventListener("change", () => {
+      renderTable();
+      setLatest(allCodes.filter(matchesFilter)[0] || null);
+    });
+
+    copyBtn.addEventListener("click", async () => {
       const text = latestCodeEl.textContent.trim();
       if (!text || text === "—") return;
       try {
         await navigator.clipboard.writeText(text);
         copyBtn.dataset.state = "ok";
         copyBtn.textContent = "Copié";
-      } catch (err) {
+      } catch {
         copyBtn.dataset.state = "err";
         copyBtn.textContent = "Copie refusée";
       }
@@ -449,32 +497,9 @@
         copyBtn.dataset.state = "";
         copyBtn.textContent = "Copier le code";
       }, 1200);
-    }
+    });
 
-    copyBtn.addEventListener("click", copyLatest);
-
-    function setStatus(connected, lastSeen) {
-      statusEl.className = connected ? "on" : "off";
-      statusEl.textContent = connected
-        ? `✅ Connecté (depuis ${lastSeen})`
-        : "❌ Déconnecté — en attente de reconnexion...";
-    }
-
-    function addRow(entry, prepend = true) {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-      <td data-label="Heure">${entry.time}</td>
-      <td data-label="Promo">${entry.classroom}</td>
-      <td data-label="Code">${entry.code}</td>
-    `;
-      prepend ? codesEl.prepend(tr) : codesEl.appendChild(tr);
-    }
-
-    function setLatest(entry) {
-      latestCodeEl.textContent = entry && entry.code ? entry.code : "—";
-    }
-
-    // Badger
+    // ── Badger modal ──────────────────────────────────────────────────────────
     let badgeToken = null;
     const badgeModal = document.getElementById("badgeModal");
 
@@ -491,7 +516,6 @@
 
     document.getElementById("openBadgeBtn").addEventListener("click", () => {
       badgeModal.classList.add("open");
-
       const hour = new Date().getHours();
       document.getElementById("snipeSessionType").value = hour < 12 ? "morning" : "afternoon";
     });
@@ -500,13 +524,13 @@
     document.getElementById("snipeClose").addEventListener("click", closeModal);
 
     document.getElementById("badgeSubmit").addEventListener("click", async () => {
-      const email = document.getElementById("badgeEmail").value.trim();
+      const email  = document.getElementById("badgeEmail").value.trim();
       const password = document.getElementById("badgePassword").value;
-      const errEl = document.getElementById("loginError");
+      const errEl  = document.getElementById("loginError");
       if (!email || !password) return;
       errEl.style.display = "none";
       try {
-        const res = await fetch("/badge", {
+        const res  = await fetch("/badge", {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: new URLSearchParams({ email, password })
@@ -527,23 +551,18 @@
     });
 
     document.getElementById("snipeSubmit").addEventListener("click", async () => {
-      const userId = document.getElementById("snipeUserId").value.trim();
-      const cardId = document.getElementById("snipeCardId").value.trim();
+      const userId      = document.getElementById("snipeUserId").value.trim();
+      const cardId      = document.getElementById("snipeCardId").value.trim();
       const sessionType = document.getElementById("snipeSessionType").value;
-
-      // MODIFICATION ICI : On récupère la promo ciblée pour l'envoyer au backend
-      let targetPromo = document.getElementById("promoFilter").value;
-      if (targetPromo === "all") targetPromo = "2026"; // Fallback de sécurité sur ta promo
-
-      const resultEl = document.getElementById("snipeResult");
+      let targetPromo   = promoFilter.value;
+      if (targetPromo === "all") targetPromo = "2026";
+      const resultEl    = document.getElementById("snipeResult");
       if (!userId || !cardId) return;
       resultEl.style.display = "none";
-
       try {
-        const res = await fetch("/badge/snipe", {
+        const res  = await fetch("/badge/snipe", {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          // Ajout de 'promo: targetPromo' dans le payload
           body: new URLSearchParams({ token: badgeToken, userId, cardId, sessionType, promo: targetPromo })
         });
         const data = await res.json();
@@ -564,32 +583,6 @@
         resultEl.style.display = "block";
       }
     });
-
-    socket.on("connect_error", () => setStatus(false, null));
-    socket.on("disconnect", () => setStatus(false, null));
-
-    socket.on("init", ({ connected, lastSeen, codes }) => {
-      setStatus(connected, lastSeen);
-      allCodes = codes || [];
-      allCodes.forEach(extractPromo);
-      rebuildPromoSelect();
-      promoFilter.value = "2026";
-      renderTable();
-      const visible = allCodes.filter(matchesFilter);
-      setLatest(visible[0] || null);
-    });
-
-    socket.on("status", ({ connected, lastSeen }) => setStatus(connected, lastSeen));
-    socket.on("code", (entry) => {
-      allCodes.unshift(entry);
-      extractPromo(entry);
-      rebuildPromoSelect();
-      if (matchesFilter(entry)) {
-        addRow(entry, true);
-        setLatest(entry);
-      }
-    });
-
   </script>
 </body>
 
