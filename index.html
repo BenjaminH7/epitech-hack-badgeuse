@@ -565,6 +565,9 @@
       }
     });
 
+    socket.on("connect_error", () => setStatus(false, null));
+    socket.on("disconnect", () => setStatus(false, null));
+
     socket.on("init", ({ connected, lastSeen, codes }) => {
       setStatus(connected, lastSeen);
       allCodes = codes || [];

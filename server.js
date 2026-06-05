@@ -12,7 +12,7 @@ const SERVER_URL = "https://milkyway.strasbourg.epitech.eu";
 
 const ADMIN_USER = "ADMIN";
 const ADMIN_HASH = "$2b$12$o91Qlibpp.xvDTdVu7/5n.66dj879Cy.eNFAmyDPmv.bsTJTdajgy";
-const SESSION_SECRET = require("crypto").randomBytes(32).toString("hex");
+const SESSION_SECRET = "nem-dashboard-secret-fixed-key-2026";
 const LAST_MSG_FILE = __dirname + "/last_discord_message.json";
 
 const app = express();
