@@ -388,10 +388,6 @@
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
-    const epitechSocket = io("https://milkyway.strasbourg.epitech.eu", {
-      transports: ["websocket"],
-      upgrade: false
-    });
     const statusEl = document.getElementById("status");
     const codesEl = document.getElementById("codes");
     const latestCodeEl = document.getElementById("latestCode");
@@ -591,18 +587,6 @@
       }
     });
 
-    epitechSocket.on("connect", () => setStatus(true, new Date().toLocaleString("fr-FR")));
-    epitechSocket.on("disconnect", () => setStatus(false, null));
-    epitechSocket.on("codeChange", (data) => {
-      const entry = { classroom: data.classroom, code: data.code, time: new Date().toLocaleTimeString() };
-      allCodes.unshift(entry);
-      extractPromo(entry);
-      rebuildPromoSelect();
-      if (matchesFilter(entry)) {
-        addRow(entry, true);
-        setLatest(entry);
-      }
-    });
   </script>
 </body>
 
