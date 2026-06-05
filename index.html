@@ -465,7 +465,7 @@
     });
 
     socket.on("init", (data) => {
-      console.log("[socket] init reçu:", data);
+      console.log("[socket] init reçu:", JSON.stringify(data));
       const { connected, lastSeen, codes } = data;
       setStatus(connected, lastSeen);
       allCodes = codes || [];
@@ -477,7 +477,7 @@
     });
 
     socket.on("status", (data) => {
-      console.log("[socket] status reçu:", data);
+      console.log("[socket] status reçu:", JSON.stringify(data));
       setStatus(data.connected, data.lastSeen);
     });
 

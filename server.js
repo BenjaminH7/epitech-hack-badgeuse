@@ -97,6 +97,7 @@ app.get("/codeABCZ", (req, res) => {
 });
 
 ioServer.on("connection", (sock) => {
+    console.log(`[ioServer] browser connecté, envoi init:`, JSON.stringify(status));
     sock.emit("init", status);
 });
 
